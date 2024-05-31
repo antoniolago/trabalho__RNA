@@ -10,16 +10,6 @@ from PIL import Image, ImageDraw, ImageFont
 import random
 import glob
 
-# Verificando se a GPU está disponível
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-# Carregando o conjunto de dados MNIST
-train_dataset = datasets.MNIST(root='./mnist_data/', train=True, transform=transforms.ToTensor(), download=True)
-test_dataset = datasets.MNIST(root='./mnist_data/', train=False, transform=transforms.ToTensor())
-
-train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=128, shuffle=True)
-test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=128, shuffle=False)
-
 
 def train_from_image():
     num_trials = 1000  # Número de vezes para testar a imagem
@@ -129,45 +119,6 @@ class Net(nn.Module):
         output = self.fc2(x)
         return output
 
-model = Net().to(device)  # Movendo o modelo para a GPU
-
-# Definindo o otimizador e a função de perda
-optimizer = optim.Adadelta(model.parameters(), lr=1.0)
-criterion = nn.CrossEntropyLoss()
-
-# Check if the model and optimizer files exist
-if os.path.exists('model.pth') and os.path.exists('optimizer.pth'):
-    # Load the model and optimizer
-    model.load_state_dict(torch.load('model.pth'))
-    optimizer.load_state_dict(torch.load('optimizer.pth'))
-else:
-    # Treinando o modelo
-    for epoch in range(10):
-        for batch_idx, (data, target) in enumerate(train_loader):
-            data, target = data.to(device), target.to(device)  # Movendo os dados e os alvos para a GPU
-            optimizer.zero_grad()
-            output = model(data)
-            loss = criterion(output, target)
-            loss.backward()
-            optimizer.step()
-
-    # Save the model and optimizer
-    torch.save(model.state_dict(), 'model.pth')
-    torch.save(optimizer.state_dict(), 'optimizer.pth')
-
-# Testando o modelo
-correct = 0
-total = 0
-with torch.no_grad():
-    for data, target in test_loader:
-        data, target = data.to(device), target.to(device)  # Movendo os dados e os alvos para a GPU
-        output = model(data)
-        _, predicted = torch.max(output.data, 1)
-        total += target.size(0)
-        correct += (predicted == target).sum().item()
-
-print('Test Accuracy: %2d%%' % (100 * correct / total))
-
 # Function to load a handwritten digit image and predict its label
 def predict(image_path):
     image = Image.open(image_path).convert('L')
@@ -226,7 +177,7 @@ def normalize_image(image_path, save_path):
     threshold = 164
     image = image.point(lambda p: p > threshold and 255)  # Binarize the image
     # Thicken the lines
-    image = image.filter(ImageFilter.MaxFilter(5))  # You can adjust the size of the filter to make the lines thicker
+    image = image.filter(ImageFilter.MaxFilter(3))  # You can adjust the size of the filter to make the lines thicker
     
     # Resize to MNIST size (28x28)
     image = image.resize((28, 28))
@@ -234,6 +185,56 @@ def normalize_image(image_path, save_path):
     # Save the normalized image
     image.save(save_path)
 
+
+# Verificando se a GPU está disponível
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+# Carregando o conjunto de dados MNIST
+train_dataset = datasets.MNIST(root='./mnist_data/', train=True, transform=transforms.ToTensor(), download=True)
+test_dataset = datasets.MNIST(root='./mnist_data/', train=False, transform=transforms.ToTensor())
+
+train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=128, shuffle=True)
+test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=128, shuffle=False)
+
+
+model = Net().to(device)  # Movendo o modelo para a GPU
+
+# Definindo o otimizador e a função de perda
+optimizer = optim.Adadelta(model.parameters(), lr=1.0)
+criterion = nn.CrossEntropyLoss()
+
+# Check if the model and optimizer files exist
+if os.path.exists('model.pth') and os.path.exists('optimizer.pth'):
+    # Load the model and optimizer
+    model.load_state_dict(torch.load('model.pth'))
+    optimizer.load_state_dict(torch.load('optimizer.pth'))
+else:
+    # Treinando o modelo
+    for epoch in range(10):
+        for batch_idx, (data, target) in enumerate(train_loader):
+            data, target = data.to(device), target.to(device)  # Movendo os dados e os alvos para a GPU
+            optimizer.zero_grad()
+            output = model(data)
+            loss = criterion(output, target)
+            loss.backward()
+            optimizer.step()
+
+    # Save the model and optimizer
+    torch.save(model.state_dict(), 'model.pth')
+    torch.save(optimizer.state_dict(), 'optimizer.pth')
+
+# Testando o modelo
+correct = 0
+total = 0
+with torch.no_grad():
+    for data, target in test_loader:
+        data, target = data.to(device), target.to(device)  # Movendo os dados e os alvos para a GPU
+        output = model(data)
+        _, predicted = torch.max(output.data, 1)
+        total += target.size(0)
+        correct += (predicted == target).sum().item()
+
+print('Test Accuracy: %2d%%' % (100 * correct / total))
 image_path = 'teste_recortado.png'  # Substitua pelo caminho da sua imagem
 
 normalized_image_path = 'normalized_image.png'
