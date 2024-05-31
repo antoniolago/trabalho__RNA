@@ -223,7 +223,7 @@ def normalize_image(image_path, save_path):
     image = ImageOps.invert(image)
     
     # Apply a threshold to ensure the background is black and the digits are white
-    threshold = 128
+    threshold = 164
     image = image.point(lambda p: p > threshold and 255)  # Binarize the image
     # Thicken the lines
     image = image.filter(ImageFilter.MaxFilter(5))  # You can adjust the size of the filter to make the lines thicker
