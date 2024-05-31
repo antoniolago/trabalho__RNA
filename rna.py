@@ -20,6 +20,49 @@ test_dataset = datasets.MNIST(root='./mnist_data/', train=False, transform=trans
 train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=128, shuffle=True)
 test_loader = torch.utils.data.DataLoader(dataset=test_dataset, batch_size=128, shuffle=False)
 
+
+def train_from_image():
+    num_trials = 1000  # Número de vezes para testar a imagem
+    num_correct = 0  # Número de vezes que a previsão estava correta
+    for _ in range(num_trials):
+        predicted_label = predict(image_path)
+        if predicted_label == correct_label:
+            num_correct += 1
+        else:
+            print(predicted_label)
+            train_until_correct(image_path, correct_label)
+        accuracy = (num_correct / num_trials) * 100
+        print(accuracy)
+        if accuracy >= 90:
+            print(num_correct, num_trials)
+            break
+
+def train_from_image_dataset():
+    num_trials = 1000  # Número de vezes para testar a imagem
+    num_correct = 0  # Número de vezes que a previsão estava correta
+
+    # Carregue todas as imagens do diretório 'digit_images'
+    image_files = glob.glob('digit_images/*.png')
+
+    for _ in range(num_trials):
+        # Escolha uma imagem aleatória e seu rótulo correto
+        image_path = random.choice(image_files)
+        correct_label = int(os.path.basename(image_path).split('_')[0])
+
+        predicted_label = predict(image_path)
+        if predicted_label == correct_label:
+            num_correct += 1
+        else:
+            print(predicted_label)
+            train_until_correct(image_path, correct_label)
+        accuracy = (num_correct / num_trials) * 100
+        print(accuracy)
+        if accuracy >= 90:
+            print(num_correct, num_trials)
+            break
+
+    print('Precisão:', accuracy, '%')
+
 def create_digital_algarisms_dataset():
     # Crie um diretório para salvar as imagens, se ainda não existir
     if not os.path.exists('digit_images'):
@@ -173,54 +216,30 @@ def train_until_correct(image_path, correct_label):
     # Save the model and optimizer
     torch.save(model.state_dict(), 'model.pth')
     torch.save(optimizer.state_dict(), 'optimizer.pth')
+def normalize_image(image_path, save_path):
+    image = Image.open(image_path).convert('L')
+    
+    # Invert the colors: Make the background black and the digits white
+    image = ImageOps.invert(image)
+    
+    # Thicken the lines
+    image = image.filter(ImageFilter.MaxFilter(5))  # You can adjust the size of the filter to make the lines thicker
+    
+    # Resize to MNIST size (28x28)
+    image = image.resize((28, 28))
+    
+    # Save the normalized image
+    image.save(save_path)
 
 image_path = 'teste2.png'  # Substitua pelo caminho da sua imagem
+
+normalized_image_path = 'normalized_image.png'
+
+#save normalized image to black background and white digits
+normalize_image(image_path, normalized_image_path)
 correct_label = 8  # Substitua pela etiqueta correta
-
-def train_from_image():
-    num_trials = 1000  # Número de vezes para testar a imagem
-    num_correct = 0  # Número de vezes que a previsão estava correta
-    for _ in range(num_trials):
-        predicted_label = predict(image_path)
-        if predicted_label == correct_label:
-            num_correct += 1
-        else:
-            print(predicted_label)
-            train_until_correct(image_path, correct_label)
-        accuracy = (num_correct / num_trials) * 100
-        print(accuracy)
-        if accuracy >= 90:
-            print(num_correct, num_trials)
-            break
-
-def train_from_image_dataset():
-    num_trials = 1000  # Número de vezes para testar a imagem
-    num_correct = 0  # Número de vezes que a previsão estava correta
-
-    # Carregue todas as imagens do diretório 'digit_images'
-    image_files = glob.glob('digit_images/*.png')
-
-    for _ in range(num_trials):
-        # Escolha uma imagem aleatória e seu rótulo correto
-        image_path = random.choice(image_files)
-        correct_label = int(os.path.basename(image_path).split('_')[0])
-
-        predicted_label = predict(image_path)
-        if predicted_label == correct_label:
-            num_correct += 1
-        else:
-            print(predicted_label)
-            train_until_correct(image_path, correct_label)
-        accuracy = (num_correct / num_trials) * 100
-        print(accuracy)
-        if accuracy >= 90:
-            print(num_correct, num_trials)
-            break
-
-    print('Precisão:', accuracy, '%')
-
-create_digital_algarisms_dataset()
-train_from_image_dataset()
-train_from_image()
+# create_digital_algarisms_dataset()
+# train_from_image_dataset()
+# train_from_image()
 for _ in range(50):
-    print(predict(image_path))
+    print(predict(normalized_image_path))
